@@ -38,45 +38,14 @@ def main(args):
         link_list = pickle.load(f)
 
     with torch.no_grad():
-        query_input = tokenizer(query_title, return_tensors='pt').to('cpu')
-        query1 = model(**query_input).pooler_output[0].cpu().numpy()
-        query_input = tokenizer(query_abst, return_tensors='pt').to('cpu')
-        query2 = model(**query_input).pooler_output[0].cpu().numpy()
+        query_input = tokenizer((query_title + ". " + query_abst).replace("\n", ""), max_length=512, padding=True, truncation=True, return_tensors='pt').to('cpu')
+        query = model(**query_input).pooler_output[0].cpu().numpy()
 
-        #kernel = np.load("./data/title_kernel.npy")
-        #bias = np.load("./data/title_bias.npy")
-        #inputs = tokenizer(query_title, max_length=512, padding=True, truncation=True, return_tensors='pt').to('cpu')
-        #hidden_states = model(**inputs, return_dict=True, output_hidden_states=True).hidden_states
-        #output_hidden_state = (hidden_states[-1] + hidden_states[1]).mean(dim=1)
-        #query1 = transform_and_normalize(output_hidden_state.cpu().numpy()[0], kernel, bias).squeeze()
+    embeddings = np.load('./data/embeddings_int8.npy')
+    embeddings = embeddings * (2/255)
 
-        #kernel = np.load("./data/abst_kernel.npy")
-        #bias = np.load("./data/abst_bias.npy")
-        #inputs = tokenizer(query_abst, max_length=512, padding=True, truncation=True, return_tensors='pt').to('cpu')
-        #hidden_states = model(**inputs, return_dict=True, output_hidden_states=True).hidden_states
-        #output_hidden_state = (hidden_states[-1] + hidden_states[1]).mean(dim=1)
-        #query2 = transform_and_normalize(output_hidden_state.cpu().numpy()[0], kernel, bias).squeeze()
-
-    title_embeddings = np.load('./data/title_embeddings_int8.npy')
-    abst_embeddings = np.load('./data/abst_embeddings_int8.npy')
-
-    title_embeddings = title_embeddings * (2/255)
-    abst_embeddings = abst_embeddings * (2/255)
-
-    print(query1)
-    print(title_embeddings[0])
-
-    if use_title and use_abst:
-        query = np.concatenate([query1, query2])
-        embeddings = np.concatenate([title_embeddings, abst_embeddings], axis=1)
-    elif use_title:
-        query = query1
-        embeddings = title_embeddings
-    elif use_abst:
-        query = query2
-        embeddings = abst_embeddings
-    else:
-        raise ValueError
+    print(query)
+    print(embeddings[0])
 
     sim_list = []
     for vector in embeddings:
